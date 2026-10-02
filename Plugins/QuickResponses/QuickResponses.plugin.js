@@ -240,9 +240,14 @@ var RenderSnippets = (props) => {
       setStats({ ...stats, [snippet.id]: stats[snippet.id] + 1 });
       let attachmentsToUpload = [];
       if (snippet.attachments && Object.keys(snippet.attachments).length > 0) {
+        const ALLOWED_ATTACHMENT_HOSTS = ["cdn.discordapp.com", "media.discordapp.net"];
         const uploadPromises = Object.values(snippet.attachments).map(async (attachment) => {
           try {
-            const content = await Net.fetch(attachment.url);
+            const parsedUrl = new URL(attachment.url);
+            if (parsedUrl.protocol !== "https:" || !ALLOWED_ATTACHMENT_HOSTS.includes(parsedUrl.hostname)) {
+              throw new Error(`Blocked attachment URL with disallowed host: ${attachment?.filename}`);
+            }
+            const content = await Net.fetch(parsedUrl.toString());
             const file = new File([await content.blob()], attachment.filename, {
               type: attachment.content_type
             });
